@@ -3,7 +3,6 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 //
-
 import ScratchScreen from "./components/scratch";
 import BitScreen from "./components/bits";
 import SetScreen from "./components/sets";
