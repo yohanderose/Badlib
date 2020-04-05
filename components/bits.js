@@ -8,84 +8,79 @@ import {
   Dimensions,
   StyleSheet,
   TouchableOpacity,
+  FlatList,
+  AsyncStorage,
 } from "react-native";
 
 class Card extends Component {
   constructor(props) {
     super(props);
-    this.cardID = props.cardID;
+    this.cardID = props.cardID.toString();
+    this.idx = props.idx;
     this.state = { note: "", title: "" };
-    this._retrieveTitle();
-    this._retrieveNote();
+    this._retrieveCard();
+    // console.log(this.cardID);
   }
 
-  _removeData = async () => {
-    console.log(this.cardID);
-    // try {
-    //   await AsyncStorage.removeItem(this.cardID + "title");
-    //   await AsyncStorage.removeItem(this.cardID + "note");
-    // } catch (error) {
-    //   // Error saving data
-    // }
+  _deleteCardData = async () => {
+    console.log("Deleting data");
+    try {
+      await AsyncStorage.removeItem(this.cardID);
+    } catch (error) {
+      // Error deleting card data
+    }
+    // Call method that invokes parent method
+    this.props.removeCardDisplay(this.idx);
+    console.log(this.title);
   };
 
-  _storeTitle = async (text) => {
+  _storeCard = async () => {
     try {
-      await AsyncStorage.setItem(this.cardID + "title", text);
+      let cardObj = {
+        idx: this.idx,
+        state: this.state,
+      };
+      console.log("Storing this: ", cardObj);
+      await AsyncStorage.setItem(this.cardID, JSON.stringify(cardObj));
+      console.log("ALERT: Saved card " + this.cardID);
     } catch (error) {
       // Error saving data
+      console.log("ERROR: Unable to save " + this.cardID);
+      // console.log(error);
     }
   };
 
-  _retrieveTitle = async () => {
+  _retrieveCard = async () => {
     try {
-      const data = await AsyncStorage.getItem(this.cardID + "title");
-      if (data !== null) {
+      let card = await AsyncStorage.getItem(this.cardID);
+      card = JSON.parse(card);
+      // console.log(typeof card);
+
+      if (card != null) {
         // We have data!!
-        this.setState({ title: data });
+        this.idx = card.idx;
+        this.setState({ title: card.state.title.toString() });
+        this.setState({ note: card.state.note.toString() });
+      } else {
+        // No data for card so create new
+        this._storeCard();
       }
     } catch (error) {
       // Error retrieving data
-      this.setState({ title: "" });
+      // console.log(error);
     }
   };
 
-  _storeNote = async (text) => {
-    try {
-      await AsyncStorage.setItem(this.cardID + "note", text);
-    } catch (error) {
-      // Error saving data
-    }
-  };
-
-  _retrieveNote = async () => {
-    try {
-      const data = await AsyncStorage.getItem(this.cardID + "note");
-      if (data !== null) {
-        // We have data!!
-        this.setState({ note: data });
-      }
-    } catch (error) {
-      // Error retrieving data
-      this.setState({ note: "" });
-    }
-  };
-
-  setScratchState = (text, context) => {
+  setScratchState = async (text, context) => {
     // Note prop being edited
     if (context == "note") {
       this.setState({ note: text });
-      this._storeNote(this.state.note);
     } else if (context == "title") {
       // Title prop being edited
       this.setState({ title: text });
-      this._storeTitle(this.state.title);
     }
-  };
-
-  TEST = () => {
-    this._retrieveNote();
-    console.log(this.state.note);
+    // Save changes
+    this._storeCard();
   };
 
   render() {
@@ -104,12 +99,13 @@ class Card extends Component {
             onChangeText={(text) => this.setScratchState(text, "note")}
             multiline
           />
+          {/* TODO: Bin is entire bottom bar instead of bottom right corner */}
           <TouchableOpacity style={styles.bin}>
             <Ionicons
               name="ios-trash"
               color="tomato"
               style={{ fontSize: 24 }}
-              onPress={this._removeData}
+              onPress={this._deleteCardData}
             />
           </TouchableOpacity>
         </TouchableOpacity>
@@ -121,14 +117,68 @@ class Card extends Component {
 export default class BitScreen extends Component {
   constructor(props) {
     super(props);
+
+    // Initialise dummy data for testing using async
+    this.TEMP();
+
     this.state = { cards: [] };
+    this._getCards();
   }
+
+  TEMP = () => {
+    let tempData = [1, 2, 3];
+    try {
+      AsyncStorage.setItem("ids", JSON.stringify(tempData));
+    } catch (error) {
+      // Failed loading dummy data
+    }
+  };
+
+  _setCards = async () => {
+    try {
+      AsyncStorage.setItem("ids", JSON.stringify(this.state.cards));
+    } catch (error) {
+      // Failed setting cards
+    }
+  };
+
+  _getCards = async () => {
+    try {
+      let cards = await AsyncStorage.getItem("ids");
+      cards = JSON.parse(cards);
+      console.log(typeof cards);
+      this.setState({ cards: cards });
+    } catch (error) {
+      // Could not load card IDs
+    }
+  };
+
+  _removeCardDisplay = (idx) => {
+    console.log(this.state.cards);
+    console.log("Removing card");
+    let updatedCards = this.state.cards;
+    updatedCards.splice(idx, 1);
+    this.setState({ cards: updatedCards });
+    console.log(this.state.cards);
+    // Update local
+    this._setCards();
+  };
+
   render() {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Card cardID={1}></Card>
-        <Card cardID={2}></Card>
-        <Card cardID={3}></Card>
+        <FlatList
+          data={this.state.cards}
+          // https://stackoverflow.com/questions/50081664/using-array-index-on-flatlist-in-react-native
+          keyExtractor={(index) => index.toString()}
+          renderItem={(card) => (
+            <Card
+              cardID={card.item}
+              idx={card.index}
+              removeCardDisplay={this._removeCardDisplay}
+            ></Card>
+          )}
+        ></FlatList>
       </View>
     );
   }
@@ -153,5 +203,6 @@ const styles = StyleSheet.create({
   bin: {
     justifyContent: "flex-end",
     alignItems: "flex-end",
+    backgroundColor: "pink",
   },
 });
