@@ -54,7 +54,7 @@ export default class Card extends Component {
     try {
       let card = await AsyncStorage.getItem(this.cardID);
       card = JSON.parse(card);
-      // console.log(typeof card);
+      console.log(card);
 
       if (card != null) {
         // We have data!!
@@ -69,7 +69,7 @@ export default class Card extends Component {
     }
   };
 
-  setScratchState = async (text, context) => {
+  setScratchState = (text, context) => {
     // Note prop being edited
     if (context == "note") {
       this.setState({ note: text });
@@ -96,12 +96,6 @@ export default class Card extends Component {
           {/* https://stackoverflow.com/questions/33071950/how-would-i-grow-textinput-height-upon-text-wrapping */}
           <TextInput
             value={this.state.note}
-            // Change text input height depending on text size
-            // onContentSizeChange={(event) => {
-            //   this.setState({ height: event.nativeEvent.contentSize.height });
-            // }}
-            // style={{ height: Math.max(height / 6, this.state.height) }}
-            // Update state of note as user makes changes
             onChangeText={(text) => this.setScratchState(text, "note")}
             multiline
           />
@@ -109,7 +103,11 @@ export default class Card extends Component {
           {/* https://github.com/jwohlfert23/react-native-tag-input/tree/90e8a50d187a807b58ff3454eb25ce31c478b78f */}
           <TagInput
             value={this.state.tags}
-            onChange={(tags) => this.setState({ tags: tags })}
+            onChange={(tags) => {
+              console.log(tags);
+              this.setState({ tags: tags });
+              this._storeCard();
+            }}
             labelExtractor={(tag) => tag}
             text={this.state.tagText}
             onChangeText={(text) => {
