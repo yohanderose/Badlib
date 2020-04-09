@@ -16,28 +16,26 @@ class Card extends Component {
   constructor(props) {
     super(props);
     this.cardID = props.cardID.toString();
-    this.idx = props.idx;
     this.state = { note: "", title: "" };
     this._retrieveCard();
     // console.log(this.cardID);
   }
 
   _deleteCardData = async () => {
-    console.log("Deleting data");
+    console.log("Deleting data of card: ", this.cardID);
     try {
       await AsyncStorage.removeItem(this.cardID);
     } catch (error) {
       // Error deleting card data
     }
     // Call method that invokes parent method
-    this.props.removeCardDisplay(this.idx);
+    this.props.removeCardDisplay(this.cardID);
     console.log(this.title);
   };
 
   _storeCard = async () => {
     try {
       let cardObj = {
-        idx: this.idx,
         state: this.state,
       };
       console.log("Storing this: ", cardObj);
@@ -58,7 +56,6 @@ class Card extends Component {
 
       if (card != null) {
         // We have data!!
-        this.idx = card.idx;
         this.setState({ title: card.state.title.toString() });
         this.setState({ note: card.state.note.toString() });
       } else {
@@ -85,21 +82,30 @@ class Card extends Component {
 
   render() {
     return (
-      <View>
-        <TouchableOpacity style={styles.card}>
+      <View style={[styles.card]}>
+        <TouchableOpacity>
           {/* Card Title  */}
           <TextInput
             style={styles.title}
             value={this.state.title}
+            // Update state of title as user makes changes
             onChangeText={(text) => this.setScratchState(text, "title")}
           ></TextInput>
           {/* Card Note Content */}
+          {/* https://stackoverflow.com/questions/33071950/how-would-i-grow-textinput-height-upon-text-wrapping */}
           <TextInput
             value={this.state.note}
+            // Change text input height depending on text size
+            // onContentSizeChange={(event) => {
+            //   this.setState({ height: event.nativeEvent.contentSize.height });
+            // }}
+            // style={{ height: Math.max(height / 6, this.state.height) }}
+            // Update state of note as user makes changes
             onChangeText={(text) => this.setScratchState(text, "note")}
             multiline
           />
-          {/* TODO: Bin is entire bottom bar instead of bottom right corner */}
+          {/* Card Tags */}
+
           <TouchableOpacity style={styles.bin}>
             <Ionicons
               name="ios-trash"
@@ -118,8 +124,8 @@ export default class BitScreen extends Component {
   constructor(props) {
     super(props);
 
-    // Initialise dummy data for testing using async
-    //this.TEMP();
+    // Initialise dummy data for testing
+    this.TEMP();
 
     this.state = { cards: [] };
     this._getCards();
@@ -154,31 +160,39 @@ export default class BitScreen extends Component {
     }
   };
 
-  _removeCardDisplay = (idx) => {
-    console.log(this.state.cards);
-    console.log("Removing card");
-    let updatedCards = this.state.cards;
-    updatedCards.splice(idx, 1);
-    this.setState({ cards: updatedCards });
-    console.log(this.state.cards);
-    // Update local Async
-    this._setCards();
-  };
-
   _addCardandDisplay = () => {
-    // TODO: make the cards id array store string/int combinations
     let updatedCards = this.state.cards;
-    console.log(this.state.cards);
+    console.log("Adding card to ", this.state.cards);
     let min = 1000;
     let max = 100000;
     let randomID = Math.floor(Math.random() * (+max - +min)) + +min;
+
+    // Make sure no duplicate card ids exist
+    while (this.state.cards.includes(randomID)) {
+      randomID = Math.floor(Math.random() * (+max - +min)) + +min;
+    }
+
     updatedCards.push(randomID);
-    // Set local and Async
+    // Update local and Async
     this.setState({ cards: updatedCards });
     console.log(this.state.cards);
     this._setCards();
   };
 
+  _removeCardDisplay = (cardID) => {
+    console.log(this.state.cards);
+    console.log("Removing card from ", this.state.cards);
+
+    let updatedCards = this.state.cards;
+    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/indexOf
+    let idx = updatedCards.indexOf(parseInt(cardID));
+    updatedCards.splice(idx, 1);
+
+    // Update local and Async
+    this.setState({ cards: updatedCards });
+    console.log(this.state.cards);
+    this._setCards();
+  };
   render() {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -190,7 +204,6 @@ export default class BitScreen extends Component {
           renderItem={(card) => (
             <Card
               cardID={card.item}
-              idx={card.index}
               removeCardDisplay={this._removeCardDisplay}
             ></Card>
           )}
@@ -208,10 +221,9 @@ const { width, height } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   card: {
-    margin: width * 0.05,
+    margin: width * 0.03,
     padding: width * 0.03,
     width: width * 0.95,
-    height: height / 7,
     borderRadius: 10,
     backgroundColor: "white",
   },
@@ -219,10 +231,10 @@ const styles = StyleSheet.create({
     borderColor: (0, 0, 0, 0.1), // Add this to specify bottom border color and opacity
     borderBottomWidth: 1, // Add this to specify bottom border thickness
   },
-  note: {},
+  note: {
+    flex: 1,
+  },
   bin: {
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
     backgroundColor: "pink",
   },
   add: {
