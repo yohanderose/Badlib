@@ -1,7 +1,4 @@
 import React, { Component } from "react";
-import { Ionicons } from "@expo/vector-icons";
-
-import TagInput from "react-native-tag-input";
 
 import {
   Text,
@@ -11,8 +8,11 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  AsyncStorage,
 } from "react-native";
+
+import { Ionicons } from "@expo/vector-icons";
+import TagInput from "react-native-tag-input";
+import AsyncStorage from "@react-native-community/async-storage";
 
 export default class Card extends Component {
   constructor(props) {
@@ -69,18 +69,6 @@ export default class Card extends Component {
     }
   };
 
-  setScratchState = (text, context) => {
-    // Note prop being edited
-    if (context == "note") {
-      this.setState({ note: text });
-    } else if (context == "title") {
-      // Title prop being edited
-      this.setState({ title: text });
-    }
-    // Save changes
-    this._storeCard();
-  };
-
   render() {
     return (
       <View style={[styles.card]}>
@@ -90,13 +78,27 @@ export default class Card extends Component {
             style={styles.title}
             value={this.state.title}
             // Update state of title as user makes changes
-            onChangeText={(text) => this.setScratchState(text, "title")}
+            onChangeText={(text) => {
+              return new Promise((resolve) => {
+                this.setState({ title: text }, () => {
+                  resolve();
+                  this._storeCard();
+                });
+              });
+            }}
           ></TextInput>
           {/* Card Note Content */}
           {/* https://stackoverflow.com/questions/33071950/how-would-i-grow-textinput-height-upon-text-wrapping */}
           <TextInput
             value={this.state.note}
-            onChangeText={(text) => this.setScratchState(text, "note")}
+            onChangeText={(text) => {
+              return new Promise((resolve) => {
+                this.setState({ note: text }, () => {
+                  resolve();
+                  this._storeCard();
+                });
+              });
+            }}
             multiline
           />
           {/* Card Tags */}
@@ -105,26 +107,40 @@ export default class Card extends Component {
             value={this.state.tags}
             onChange={(tags) => {
               console.log(tags);
-              this.setState({ tags: tags });
-              this._storeCard();
+              return new Promise((resolve) => {
+                this.setState({ tags: tags }, () => {
+                  resolve();
+                  this._storeCard();
+                });
+              });
             }}
             labelExtractor={(tag) => tag}
             text={this.state.tagText}
             onChangeText={(text) => {
               {
-                this.setState({ tagText: text });
+                return new Promise((resolve) => {
+                  this.setState({ tagText: text }, () => {
+                    resolve();
+                    const lastTyped = text.charAt(text.length - 1);
+                    const parseWhen = [",", " ", ";", "\n"];
 
-                const lastTyped = text.charAt(text.length - 1);
-                const parseWhen = [",", " ", ";", "\n"];
-
-                if (parseWhen.indexOf(lastTyped) > -1) {
-                  this.setState({
-                    tags: [...this.state.tags, this.state.tagText],
-                    tagText: "",
+                    if (parseWhen.indexOf(lastTyped) > -1) {
+                      return new Promise((resolve) => {
+                        this.setState(
+                          {
+                            tags: [...this.state.tags, this.state.tagText],
+                            tagText: "",
+                          },
+                          () => {
+                            resolve();
+                            //console.log(this.state.tags);
+                            this._storeCard();
+                          }
+                        );
+                      });
+                    }
                   });
-                  //console.log(this.state.tags);
-                  this._storeCard();
-                }
+                });
               }
             }}
             tagColor="blue"

@@ -11,8 +11,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
-  AsyncStorage,
 } from "react-native";
+import AsyncStorage from "@react-native-community/async-storage";
 
 export default class BitScreen extends Component {
   constructor(props) {

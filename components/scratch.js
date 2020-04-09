@@ -5,9 +5,10 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  AsyncStorage,
-  Dimensions
+  Dimensions,
 } from "react-native";
+
+import AsyncStorage from "@react-native-community/async-storage";
 
 export default class ScratchScreen extends Component {
   constructor(props) {
@@ -16,9 +17,9 @@ export default class ScratchScreen extends Component {
     this._retrieveData();
   }
 
-  _storeData = async text => {
+  _storeData = async () => {
     try {
-      await AsyncStorage.setItem("user", text);
+      await AsyncStorage.setItem("user", this.state.notes);
     } catch (error) {
       // Error saving data
     }
@@ -27,6 +28,7 @@ export default class ScratchScreen extends Component {
   _retrieveData = async () => {
     try {
       const data = await AsyncStorage.getItem("user");
+      // console.log(data);
       if (data !== null) {
         // We have data!!
         this.setState({ notes: data });
@@ -35,11 +37,6 @@ export default class ScratchScreen extends Component {
       // Error retrieving data
       this.setState({ notes: "" });
     }
-  };
-
-  setScratchState = text => {
-    this.setState({ notes: text });
-    this._storeData(this.state.notes);
   };
 
   TEST = () => {
@@ -55,7 +52,15 @@ export default class ScratchScreen extends Component {
         <TextInput
           style={styles.notesArea}
           value={this.state.notes}
-          onChangeText={text => this.setScratchState(text)}
+          onChangeText={(text) => {
+            return new Promise((resolve) => {
+              // console.log(text);
+              this.setState({ notes: text }, () => {
+                resolve();
+                this._storeData();
+              });
+            });
+          }}
           multiline
         />
 
@@ -72,19 +77,19 @@ const { width, height } = Dimensions.get("window");
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    padding: 2
+    padding: 2,
   },
   container: {
     margin: width * 0.04,
     marginTop: 20,
-    backgroundColor: "white"
+    backgroundColor: "white",
   },
   notesArea: {
     textAlignVertical: "top",
     margin: width * 0.02,
     backgroundColor: "white",
     height: height * 0.9,
-    padding: width * 0.04
+    padding: width * 0.04,
   },
   button: {
     marginLeft: width * 0.06,
@@ -93,6 +98,6 @@ const styles = StyleSheet.create({
     width: width * 0.08,
     height: height * 0.03,
     alignItems: "center",
-    borderRadius: 3
-  }
+    borderRadius: 3,
+  },
 });
