@@ -141,7 +141,6 @@ export default class Card extends Component {
           style={{
             height: height / 12,
             overflow: "hidden",
-            alignSelf: "flex-start",
           }}
         >
           <TagInput
@@ -199,7 +198,13 @@ export default class Card extends Component {
         </View>
 
         {/* Buttons  */}
-        <View style={{ flexDirection: "row", flex: 1, alignItems: "" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            flex: 1,
+            margin: width * 0.01,
+          }}
+        >
           <TouchableOpacity style={styles.tag} onPress={this._autoTag}>
             <Ionicons
               name="ios-pricetags"
@@ -230,7 +235,7 @@ const styles = StyleSheet.create({
     margin: width * 0.03,
     padding: width * 0.03,
     width: width * 0.95,
-    borderRadius: 10,
+    borderRadius: 7,
     backgroundColor: "white",
   },
   title: {
