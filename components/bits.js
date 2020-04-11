@@ -19,7 +19,7 @@ export default class BitScreen extends Component {
     super(props);
 
     // Initialise dummy data for testing
-    // this.TEMP();
+    //this.TEMP();
 
     this.state = { cards: [] };
     this._getCards();

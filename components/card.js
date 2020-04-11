@@ -19,7 +19,12 @@ export default class Card extends Component {
   constructor(props) {
     super(props);
     this.cardID = props.cardID.toString();
-    this.state = { note: "", title: "", tags: [], tagText: "" };
+    this.state = {
+      note: "",
+      title: "",
+      tags: [],
+      tagText: "",
+    };
     this._retrieveCard();
     // console.log(this.cardID);
   }
@@ -78,14 +83,15 @@ export default class Card extends Component {
         return_changed_case: true,
         remove_duplicates: true,
       });
-      console.log(keywords);
       let updatedTags = this.state.tags;
+      let temp = [];
       keywords.forEach((keyword) => {
         if (!updatedTags.includes(keyword)) {
           updatedTags.push(keyword);
+          temp.push(keyword);
         }
       });
-      // console.log(updatedTags);
+      console.log(temp);
       return new Promise((resolve) => {
         this.setState({ tags: updatedTags }, () => {
           resolve();
@@ -100,38 +106,44 @@ export default class Card extends Component {
   render() {
     return (
       <View style={[styles.card]}>
-        <TouchableOpacity>
-          {/* Card Title  */}
-          <TextInput
-            style={styles.title}
-            value={this.state.title}
-            // Update state of title as user makes changes
-            onChangeText={(text) => {
-              return new Promise((resolve) => {
-                this.setState({ title: text }, () => {
-                  resolve();
-                  this._storeCard();
-                });
+        {/* Card Title  */}
+        <TextInput
+          style={styles.title}
+          value={this.state.title}
+          // Update state of title as user makes changes
+          onChangeText={(text) => {
+            return new Promise((resolve) => {
+              this.setState({ title: text }, () => {
+                resolve();
+                this._storeCard();
               });
-            }}
-          ></TextInput>
-          {/* Card Note Content */}
-          {/* https://stackoverflow.com/questions/33071950/how-would-i-grow-textinput-height-upon-text-wrapping */}
-          <TextInput
-            value={this.state.note}
-            onChangeText={(text) => {
-              return new Promise((resolve) => {
-                this.setState({ note: text }, () => {
-                  resolve();
-                  this._storeCard();
-                });
+            });
+          }}
+        ></TextInput>
+        {/* Card Note Content */}
+        {/* https://stackoverflow.com/questions/33071950/how-would-i-grow-textinput-height-upon-text-wrapping */}
+        <TextInput
+          value={this.state.note}
+          onChangeText={(text) => {
+            return new Promise((resolve) => {
+              this.setState({ note: text }, () => {
+                resolve();
+                this._storeCard();
               });
-            }}
-            multiline
-          ></TextInput>
+            });
+          }}
+          multiline
+        ></TextInput>
 
-          {/* Card Tags */}
-          {/* https://github.com/jwohlfert23/react-native-tag-input/tree/90e8a50d187a807b58ff3454eb25ce31c478b78f */}
+        {/* Card Tags */}
+        {/* https://github.com/jwohlfert23/react-native-tag-input/tree/90e8a50d187a807b58ff3454eb25ce31c478b78f */}
+        <View
+          style={{
+            height: height / 12,
+            overflow: "hidden",
+            alignSelf: "flex-start",
+          }}
+        >
           <TagInput
             value={this.state.tags}
             onChange={(tags) => {
@@ -155,20 +167,25 @@ export default class Card extends Component {
 
                     if (parseWhen.indexOf(lastTyped) > -1) {
                       return new Promise((resolve) => {
-                        this.setState(
-                          {
-                            tags: [
-                              ...this.state.tags,
-                              this.state.tagText.trim(),
-                            ],
-                            tagText: "",
-                          },
-                          () => {
-                            resolve();
-                            //console.log(this.state.tags);
-                            this._storeCard();
-                          }
-                        );
+                        let newTag = this.state.tagText.trim();
+                        if (!this.state.tags.includes(newTag)) {
+                          this.setState(
+                            {
+                              tags: [
+                                ...this.state.tags,
+                                this.state.tagText.trim(),
+                              ],
+                              tagText: "",
+                            },
+                            () => {
+                              resolve();
+                              //console.log(this.state.tags);
+                              this._storeCard();
+                            }
+                          );
+                        } else {
+                          this.setState({ tagText: "" });
+                        }
                       });
                     }
                   });
@@ -179,20 +196,28 @@ export default class Card extends Component {
             tagTextColor="white"
             inputProps={{ placeholder: "Tags" }}
           ></TagInput>
+        </View>
 
+        {/* Buttons  */}
+        <View style={{ flexDirection: "row", flex: 1, alignItems: "" }}>
           <TouchableOpacity style={styles.tag} onPress={this._autoTag}>
-            <Text>ADD TAGS</Text>
+            <Ionicons
+              name="ios-pricetags"
+              color="tomato"
+              style={{ fontSize: 24 }}
+            />
+            <Text>Auto Tag</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.bin}>
+          <TouchableOpacity style={styles.bin} onPress={this._deleteCardData}>
             <Ionicons
               name="ios-trash"
               color="tomato"
               style={{ fontSize: 24 }}
-              onPress={this._deleteCardData}
             />
+            <Text>Delete</Text>
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -214,11 +239,14 @@ const styles = StyleSheet.create({
   },
   note: {
     flex: 1,
+    height: height / 10,
   },
   tag: {
     backgroundColor: "green",
+    alignSelf: "flex-end",
   },
   bin: {
     backgroundColor: "pink",
+    alignSelf: "flex-end",
   },
 });
