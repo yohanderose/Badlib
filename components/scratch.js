@@ -6,9 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  AsyncStorage,
 } from "react-native";
-
-import AsyncStorage from "@react-native-community/async-storage";
 
 export default class ScratchScreen extends Component {
   constructor(props) {

@@ -1,5 +1,9 @@
 import React, { Component } from "react";
 
+import { Ionicons } from "@expo/vector-icons";
+import TagInput from "react-native-tag-input";
+import keyword_extractor from "keyword-extractor";
+
 import {
   Text,
   View,
@@ -8,11 +12,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  AsyncStorage,
 } from "react-native";
-
-import { Ionicons } from "@expo/vector-icons";
-import TagInput from "react-native-tag-input";
-import AsyncStorage from "@react-native-community/async-storage";
 
 export default class Card extends Component {
   constructor(props) {
@@ -69,6 +70,33 @@ export default class Card extends Component {
     }
   };
 
+  _autoTag = () => {
+    try {
+      let keywords = keyword_extractor.extract(this.state.note, {
+        language: "english",
+        remove_digits: true,
+        return_changed_case: true,
+        remove_duplicates: true,
+      });
+      console.log(keywords);
+      let updatedTags = this.state.tags;
+      keywords.forEach((keyword) => {
+        if (!updatedTags.includes(keyword)) {
+          updatedTags.push(keyword);
+        }
+      });
+      // console.log(updatedTags);
+      return new Promise((resolve) => {
+        this.setState({ tags: updatedTags }, () => {
+          resolve();
+          this._storeCard();
+        });
+      });
+    } catch (e) {
+      console.error("Exception thrown", e);
+    }
+  };
+
   render() {
     return (
       <View style={[styles.card]}>
@@ -100,7 +128,8 @@ export default class Card extends Component {
               });
             }}
             multiline
-          />
+          ></TextInput>
+
           {/* Card Tags */}
           {/* https://github.com/jwohlfert23/react-native-tag-input/tree/90e8a50d187a807b58ff3454eb25ce31c478b78f */}
           <TagInput
@@ -128,7 +157,10 @@ export default class Card extends Component {
                       return new Promise((resolve) => {
                         this.setState(
                           {
-                            tags: [...this.state.tags, this.state.tagText],
+                            tags: [
+                              ...this.state.tags,
+                              this.state.tagText.trim(),
+                            ],
                             tagText: "",
                           },
                           () => {
@@ -147,6 +179,11 @@ export default class Card extends Component {
             tagTextColor="white"
             inputProps={{ placeholder: "Tags" }}
           ></TagInput>
+
+          <TouchableOpacity style={styles.tag} onPress={this._autoTag}>
+            <Text>ADD TAGS</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.bin}>
             <Ionicons
               name="ios-trash"
@@ -177,6 +214,9 @@ const styles = StyleSheet.create({
   },
   note: {
     flex: 1,
+  },
+  tag: {
+    backgroundColor: "green",
   },
   bin: {
     backgroundColor: "pink",

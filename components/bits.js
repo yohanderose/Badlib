@@ -11,15 +11,15 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  AsyncStorage,
 } from "react-native";
-import AsyncStorage from "@react-native-community/async-storage";
 
 export default class BitScreen extends Component {
   constructor(props) {
     super(props);
 
     // Initialise dummy data for testing
-    this.TEMP();
+    // this.TEMP();
 
     this.state = { cards: [] };
     this._getCards();
