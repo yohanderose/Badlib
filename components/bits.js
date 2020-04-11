@@ -1,5 +1,6 @@
 import React, { Component } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { SearchBar } from "react-native-elements";
 
 import Card from "./card";
 
@@ -21,7 +22,7 @@ export default class BitScreen extends Component {
     // Initialise dummy data for testing
     //this.TEMP();
 
-    this.state = { cards: [] };
+    this.state = { cards: [], search: "" };
     this._getCards();
   }
 
@@ -87,9 +88,51 @@ export default class BitScreen extends Component {
     console.log(this.state.cards);
     this._setCards();
   };
+
+  _extractCardData = async (cardID) => {
+    let card = await AsyncStorage.getItem(cardID.toString());
+    card = JSON.parse(card);
+    // return a big search array per id
+    return {
+      cardID: cardID,
+      searchArr: card.state.tags.concat(
+        card.state.note.split(" ").concat(card.state.title.split(" "))
+      ),
+    };
+  };
+
+  _searchCards = async () => {
+    let query = this.state.search.toLowerCase();
+    console.log(query);
+
+    let cardSearchObjs = [];
+    this.state.cards.forEach((cardID) => {
+      cardSearchObjs.push(this._extractCardData(cardID));
+    });
+
+    cardSearchObjs.forEach((obj) => {
+      console.log(obj);
+    });
+  };
+
   render() {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <SearchBar
+          containerStyle={{ width: width * 0.8, marginTop: height * 0.05 }}
+          platform="ios"
+          placeholder="Search"
+          value={this.state.search}
+          onChangeText={(text) => {
+            return new Promise((resolve) => {
+              this.setState({ search: text }, () => {
+                resolve();
+                this._searchCards();
+              });
+            });
+          }}
+        />
+
         <FlatList
           data={this.state.cards}
           extraData={this.state}
