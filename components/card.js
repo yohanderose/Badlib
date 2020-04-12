@@ -49,6 +49,9 @@ export default class Card extends Component {
       console.log("Storing this: ", cardObj);
       await AsyncStorage.setItem(this.cardID, JSON.stringify(cardObj));
       console.log("ALERT: Saved card " + this.cardID);
+
+      // Update search arr in parent
+      this.props.updateSearching();
     } catch (error) {
       // Error saving data
       console.log("ERROR: Unable to save " + this.cardID);
@@ -60,7 +63,6 @@ export default class Card extends Component {
     try {
       let card = await AsyncStorage.getItem(this.cardID);
       card = JSON.parse(card);
-      console.log(card);
 
       if (card != null) {
         // We have data!!
@@ -166,13 +168,16 @@ export default class Card extends Component {
 
                     if (parseWhen.indexOf(lastTyped) > -1) {
                       return new Promise((resolve) => {
-                        let newTag = this.state.tagText.trim();
-                        if (!this.state.tags.includes(newTag)) {
+                        let newTag = this.state.tagText.slice(0, -1).trim();
+                        if (
+                          !this.state.tags.includes(newTag) &&
+                          newTag.length > 0
+                        ) {
                           this.setState(
                             {
                               tags: [
                                 ...this.state.tags,
-                                this.state.tagText.trim(),
+                                this.state.tagText.trim().toLowerCase(),
                               ],
                               tagText: "",
                             },

@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { SearchBar } from "react-native-elements";
+// import _ from "lodash";
 
 import Card from "./card";
 
@@ -20,9 +21,15 @@ export default class BitScreen extends Component {
     super(props);
 
     // Initialise dummy data for testing
-    //this.TEMP();
+    // this.TEMP();
 
-    this.state = { cards: [], search: "" };
+    this.state = {
+      cards: [],
+      allCards: [],
+      search: "",
+      searchArr: [],
+      searching: false,
+    };
     this._getCards();
   }
 
@@ -37,7 +44,7 @@ export default class BitScreen extends Component {
 
   _setCards = async () => {
     try {
-      AsyncStorage.setItem("ids", JSON.stringify(this.state.cards));
+      AsyncStorage.setItem("ids", JSON.stringify(this.state.allCards));
     } catch (error) {
       // Failed setting cards
     }
@@ -49,70 +56,134 @@ export default class BitScreen extends Component {
       cards = JSON.parse(cards);
       // console.log(typeof cards);
 
-      this.setState({ cards: cards });
+      return new Promise((resolve) => {
+        this.setState({ cards: cards, allCards: cards }, () => {
+          resolve();
+        });
+      }).then(() => {
+        this._setupSearch();
+      });
     } catch (error) {
       // Could not load card IDs
     }
   };
 
+  _setupSearch = () => {
+    console.log("Updating search array for", this.state.allCards);
+    this.setState({ searchArr: [] }, () => {
+      this.state.allCards.forEach((cardID) => {
+        this._getCardData(cardID);
+      });
+    });
+  };
+
+  _getCardData = (cardID) => {
+    try {
+      let card = AsyncStorage.getItem(cardID.toString()).then((card) => {
+        card = JSON.parse(card);
+        let arr = [];
+        if (card.state.tags.length > 0) {
+          arr = card.state.tags;
+        }
+        if (card.state.note != "") {
+          if (arr == []) {
+            arr = card.state.note.split(" ");
+          } else {
+            arr = arr.concat(card.state.note.split(" "));
+          }
+        }
+        if (card.state.title != "") {
+          if (arr == []) {
+            arr = card.state.title.split(" ");
+          } else {
+            arr = arr.concat(card.state.title.split(" "));
+          }
+        }
+
+        arr = arr.map((str) => {
+          return str.toLowerCase();
+        });
+
+        this.setState(
+          {
+            searchArr: [
+              ...this.state.searchArr,
+              {
+                cardID: cardID,
+                arr: arr,
+              },
+            ],
+          }
+          // console.log(this.state.searchArr)
+        );
+      });
+    } catch (error) {
+      // Could not load card IDs
+    }
+  };
+
+  _handleSearch = () => {
+    let query = this.state.search.toLowerCase();
+
+    console.log(query);
+    if (query == "") {
+      this.setState({ cards: this.state.allCards, searching: false });
+      return;
+    } else {
+      this.setState({ searching: true });
+    }
+    const cards = [];
+    this.state.searchArr.forEach((obj) => {
+      if (obj.arr.filter((str) => str.includes(query)).length > 0) {
+        cards.push(obj.cardID);
+      }
+    });
+    this.setState({ cards: cards });
+  };
+
   _addCardandDisplay = () => {
-    let updatedCards = this.state.cards;
-    console.log("Adding card to ", this.state.cards);
+    let updatedCards = this.state.allCards;
+    console.log("Adding card to ", this.state.allCards);
     let min = 1000;
     let max = 100000;
     let randomID = Math.floor(Math.random() * (+max - +min)) + +min;
 
     // Make sure no duplicate card ids exist
-    while (this.state.cards.includes(randomID)) {
+    while (this.state.allCards.includes(randomID)) {
       randomID = Math.floor(Math.random() * (+max - +min)) + +min;
     }
 
     updatedCards.push(randomID);
     // Update local and Async
-    this.setState({ cards: updatedCards });
+    this.setState({ allCards: updatedCards });
     console.log(this.state.cards);
     this._setCards();
   };
 
   _removeCardDisplay = (cardID) => {
-    console.log(this.state.cards);
-    console.log("Removing card from ", this.state.cards);
+    console.log(this.state.allCards);
+    console.log("Removing card from ", this.state.allCards);
 
-    let updatedCards = this.state.cards;
+    let updatedCards = this.state.allCards;
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/indexOf
     let idx = updatedCards.indexOf(parseInt(cardID));
     updatedCards.splice(idx, 1);
 
     // Update local and Async
-    this.setState({ cards: updatedCards });
-    console.log(this.state.cards);
+    this.setState({ allCards: updatedCards });
+    console.log(this.state.allCards);
     this._setCards();
   };
 
-  _extractCardData = async (cardID) => {
-    let card = await AsyncStorage.getItem(cardID.toString());
-    card = JSON.parse(card);
-    // return a big search array per id
-    return {
-      cardID: cardID,
-      searchArr: card.state.tags.concat(
-        card.state.note.split(" ").concat(card.state.title.split(" "))
-      ),
-    };
-  };
-
-  _searchCards = async () => {
-    let query = this.state.search.toLowerCase();
-    console.log(query);
-
-    let cardSearchObjs = [];
-    this.state.cards.forEach((cardID) => {
-      cardSearchObjs.push(this._extractCardData(cardID));
-    });
-
-    cardSearchObjs.forEach((obj) => {
-      console.log(obj);
-    });
+  // Does not display 'add card' button if user is searching something
+  _renderAddButton = () => {
+    if (this.state.searching == false) {
+      return (
+        <TouchableOpacity style={styles.add} onPress={this._addCardandDisplay}>
+          <Ionicons style={styles.add_icon} name="ios-add" color="white" />
+        </TouchableOpacity>
+      );
+    }
   };
 
   render() {
@@ -127,7 +198,7 @@ export default class BitScreen extends Component {
             return new Promise((resolve) => {
               this.setState({ search: text }, () => {
                 resolve();
-                this._searchCards();
+                this._handleSearch();
               });
             });
           }}
@@ -142,13 +213,12 @@ export default class BitScreen extends Component {
             <Card
               cardID={card.item}
               removeCardDisplay={this._removeCardDisplay}
+              updateSearching={this._setupSearch}
             ></Card>
           )}
         ></FlatList>
 
-        <TouchableOpacity style={styles.add} onPress={this._addCardandDisplay}>
-          <Ionicons style={styles.add_icon} name="ios-add" color="white" />
-        </TouchableOpacity>
+        {this._renderAddButton()}
       </View>
     );
   }
